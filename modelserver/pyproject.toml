@@ -1,0 +1,13 @@
+[project]
+name = "maintainers-copilot-modelserver"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[project.dependencies]
+fastapi = "^0.95.0"
+uvicorn = "^0.22.0"
+spacy = "^3.7.0"
+openai = ">=1.0.0"
+structlog = "^22.3.0"
+torch = "^2.1.0"
+transformers = "^4.34.0"

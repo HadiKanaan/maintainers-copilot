@@ -1,0 +1,12 @@
+pytest
+ruff
+mypy
+httpx
+pyyaml
+scikit-learn
+openai
+minio
+rank-bm25
+redis
+sqlalchemy
+pgvector

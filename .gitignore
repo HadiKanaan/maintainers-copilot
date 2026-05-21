@@ -1,0 +1,128 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.der
+*.jks
+*.keystore
+*.secrets
+secrets.*
+*secret*
+*credentials*
+*token*
+*apikey*
+*api_key*
+*private_key*
+
+# Vault
+.vault
+vault_data/
+vault/raft/
+
+# ML models and artifacts
+models/
+mlruns/
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# RAG data / datasets
+data/
+!data/golden_classification.jsonl
+!data/golden_rag.jsonl
+*.jsonl
+*.parquet
+*.csv
+*.tsv
+
+# MinIO
+minio_data/
+minio/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql
+db_data/
+
+# Redis
+redis_data/
+
+# Logs
+*.log
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.cache/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+.project
+.classpath
+.settings/
+
+# Docker
+*.pid
+*.pid.lock
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+*.lcov
+
+# Terraform / IaC
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
+
+# Misc archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z

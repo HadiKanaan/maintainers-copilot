@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install ruff
+        run: pip install ruff uv
+      - name: Install deps (uv)
+        run: uv pip install -r requirements-test.txt
+      - name: Run ruff
+        run: ruff check app/ tests/
+
+  type-check:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install mypy
+        run: pip install mypy uv
+      - name: Install deps (uv)
+        run: uv pip install -r requirements-test.txt
+      - name: Run mypy
+        run: mypy app/
+
+  test:
+    runs-on: ubuntu-latest
+    needs: type-check
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install uv
+      - name: Install deps (uv)
+        run: uv pip install -r requirements-test.txt
+      - name: Run tests
+        run: pytest tests/test_redaction.py -v
+
+  eval-classification:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps (uv)
+        run: pip install uv && uv pip install -r requirements-test.txt
+      - name: Run classification eval
+        run: python scripts/eval_classification.py
+      - name: Upload classification report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval_report_classification
+          path: eval_report_classification.json
+
+  eval-rag:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps (uv)
+        run: pip install uv && uv pip install -r requirements-test.txt
+      - name: Run RAG eval
+        run: python scripts/eval_rag.py
+      - name: Upload RAG report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval_report_rag
+          path: eval_report_rag.json

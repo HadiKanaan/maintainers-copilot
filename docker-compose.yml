@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  vault:
+    image: hashicorp/vault:1.16
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_ROOT_TOKEN}
+    ports:
+      - "8200:8200"
+    command: server -dev -dev-root-token-id=${VAULT_ROOT_TOKEN}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/v1/sys/health"]
+      interval: 10s
+      retries: 5
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: maintcopilot
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d maintcopilot"]
+      interval: 10s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/ready || exit 1"]
+      interval: 10s
+      retries: 5
+
+  migrate:
+    image: python:3.11-slim
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      VAULT_ADDR: ${VAULT_ADDR}
+      VAULT_ROOT_TOKEN: ${VAULT_ROOT_TOKEN}
+    command: ["/bin/sh", "-c", "pip install 'alembic' psycopg2-binary asyncpg && alembic upgrade head"]
+
+  modelserver:
+    build:
+      context: ./modelserver
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      MODELSERVER_PORT: "8001"
+      VAULT_ADDR: ${VAULT_ADDR}
+      VAULT_ROOT_TOKEN: ${VAULT_ROOT_TOKEN}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
+      AZURE_OPENAI_DEPLOYMENT_NAME: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION}
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      vault:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      VAULT_ADDR: ${VAULT_ADDR}
+      VAULT_ROOT_TOKEN: ${VAULT_ROOT_TOKEN}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
+      AZURE_OPENAI_DEPLOYMENT_NAME: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION}
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      MODELSERVER_URL: ${MODELSERVER_URL}
+
+  chatbot:
+    image: python:3.11-slim
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://api:8000
+      VAULT_ADDR: ${VAULT_ADDR}
+      VAULT_ROOT_TOKEN: ${VAULT_ROOT_TOKEN}
+    command: ["/bin/sh", "-c", "pip install streamlit && streamlit run chatbot/app.py --server.port 8501 --server.headless true"]
+
+volumes:
+  db_data:
